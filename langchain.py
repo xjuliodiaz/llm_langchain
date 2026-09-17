@@ -6,7 +6,9 @@ from my_keys import GEMINI_API_KEY, COHERE_API_KEY
 from my_helper import encode_image
 from langchain_core.prompts import ChatPromptTemplate, PromptTemplate
 from langchain_core.output_parsers import StrOutputParser
+from langchain_core.globals import set_debug
 
+set_debug(True)
 
 llm = ChatGoogleGenerativeAI(
     api_key=GEMINI_API_KEY,
@@ -50,10 +52,28 @@ respuesta_analisis = cadena_analisis.invoke({"imagen_informada": imagen})
 
 print(respuesta_analisis)
 
-llm = ChatCohere(
+template_respuesta = PromptTemplate(
+    template="""
+        Genera un resumen, utilizando un lenguaje claro y objetivo, enfocado en el público colombiano.
+        La idea es que la comunicación del resultado sea lo más sencilla posible, priorizando los registros
+        para consultas posteriores.
+
+        # RESULTADO DE LA IMAGEN
+        {respuesta_analisis_imagen}
+        """,
+        input_variables=["respuesta_analisis_imagen"]
+
+)
+
+llm_cohere = ChatCohere(
     cohere_api_key=COHERE_API_KEY
 )
 
+cadena_resumen = template_respuesta | llm_cohere | StrOutputParser()
+
+cadena_compuesta = (cadena_analisis | cadena_resumen)
+
+respuesta = cadena_compuesta.invoke({"imagen_informada": imagen})
 
 
 
